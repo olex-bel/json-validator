@@ -1,0 +1,14 @@
+{
+  "name": "json-validator",
+  "version": "0.0.1",
+  "description": "The library for getting nicer JSON parse errors",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "author": "AlexB",
+  "license": "GPL-3.0-or-later",
+  "devDependencies": {
+    "jest": "^27.2.5"
+  }
+}
