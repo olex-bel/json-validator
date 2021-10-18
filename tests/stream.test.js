@@ -1,13 +1,13 @@
 const JSONStream = require('../stream');
 
 test('should return null for empty string', () => {
-    const stream = new JSONStream("");
+    const stream = new JSONStream('');
 
     expect(stream.getChar()).toBeNull();
 });
 
 test('should not change column value for empty string', () => {
-    const stream = new JSONStream("");
+    const stream = new JSONStream('');
     const char = stream.getChar();
     const position = stream.getPositionStatus();
 
@@ -17,7 +17,7 @@ test('should not change column value for empty string', () => {
 });
 
 test('should return character from string', () => {
-    const testText = "true";
+    const testText = 'true';
     const stream = new JSONStream(testText);
     let resultText = '';
 

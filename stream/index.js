@@ -1,5 +1,3 @@
-'use strict';
-
 const JSONStringStream = require('./stringstream');
 const JSONStreamPosition = require('./streamposition');
 
@@ -16,7 +14,7 @@ JSONStream.prototype.__skipNewLineChars = function () {
         this.stream.getChar();
         char = this.stream.getCharWithoutChangePosition();
     }
-}
+};
 
 JSONStream.prototype.getChar = function () {
     let char;
@@ -33,6 +31,6 @@ JSONStream.prototype.getChar = function () {
 
 JSONStream.prototype.getPositionStatus = function () {
     return this.position.getPositionStatus();
-}
+};
 
 module.exports = JSONStream;

@@ -1,4 +1,3 @@
-
 function JSONStreamPosition() {
     this.line = 1;
     this.column = 0;
