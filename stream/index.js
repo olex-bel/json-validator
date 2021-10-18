@@ -6,7 +6,7 @@ function JSONStream(json) {
     this.position = new JSONStreamPosition();
 }
 
-JSONStream.prototype.__skipNewLineChars = function () {
+JSONStream.prototype.skipNewLineChars = function () {
     let char = this.stream.getCharWithoutChangePosition();
 
     while (char && char === '\r') {
@@ -17,10 +17,8 @@ JSONStream.prototype.__skipNewLineChars = function () {
 };
 
 JSONStream.prototype.getChar = function () {
-    let char;
-
-    this.__skipNewLineChars();
-    char = this.stream.getChar();
+    this.skipNewLineChars();
+    const char = this.stream.getChar();
 
     if (char) {
         this.position.increaseColumnNumber();
