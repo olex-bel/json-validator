@@ -25,4 +25,17 @@ JSONStringStream.prototype.getChar = function () {
     return char;
 };
 
+JSONStringStream.prototype.getCurrentContextCodeSnippet = function () {
+    const currentCharIndex = this.pos > 0 ? this.pos - 1 : 0;
+    const fromIndex = Math.max(0, currentCharIndex - 10);
+    const isTrimmed = fromIndex > 0;
+    let codeSnippet = this.json.slice(fromIndex, currentCharIndex + 1);
+
+    if (isTrimmed) {
+        codeSnippet += `...${codeSnippet}`;
+    }
+
+    return codeSnippet;
+};
+
 module.exports = JSONStringStream;

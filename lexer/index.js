@@ -61,7 +61,7 @@ JSONLexer.prototype.getToken = function () {
         this.ungetLastChar(char);
         token = this.parseNumber();
     } else {
-        throw new Error('Undefined token');
+        throw new Error(`JSON Syntax Error: unexpected token "${char}"`);
     }
 
     return token;
@@ -90,7 +90,7 @@ JSONLexer.prototype.parseIdentifier = function () {
     this.ungetLastChar(char);
 
     if (!identifierMapping[identifier]) {
-        throw new Error('Undefined token');
+        throw new Error(`JSON Syntax Error: unexpected keyword "${identifier}"`);
     }
 
     return this.createToken(identifierMapping[identifier]);
@@ -111,7 +111,7 @@ JSONLexer.prototype.parseString = function () {
     }
 
     if (!Utils.isDoubleQuote(char)) {
-        throw new Error('Expecting a `"` over here.');
+        throw new Error('JSON Syntax Error: unterminated string literal');
     }
 
     return this.createToken(Token.TOKEN_STRING, string);
@@ -122,7 +122,7 @@ JSONLexer.prototype.parseEscape = function () {
     let string = char;
 
     if ('"/\\bfnrtu'.indexOf(char) === -1) {
-        throw new Error(`Unexpected escape character: ${char}`);
+        throw new Error(`JSON Syntax Error: bad escape character "\\${char}"`);
     }
 
     if (char === 'u') {
@@ -141,7 +141,7 @@ JSONLexer.prototype.parseUnicode = function () {
         if (Utils.isHexadecimal(char)) {
             unicodeCodes += char;
         } else {
-            throw new Error(`Unexpected unicode character: ${char}`);
+            throw new Error(`JSON Syntax Error: bad Unicode escape "${char}"`);
         }
     }
     return unicodeCodes;
@@ -168,7 +168,7 @@ JSONLexer.prototype.parseInteger = function () {
     }
 
     if (!Utils.isDigit(char)) {
-        throw new Error('Expecting a digit `0-9` over here.');
+        throw new Error(`JSON Syntax Error: expecting a digit here but found "${char}"`);
     }
 
     while (char && Utils.isDigit(char)) {
@@ -194,7 +194,7 @@ JSONLexer.prototype.parseFraction = function () {
     char = this.getChar();
 
     if (!Utils.isDigit(char)) {
-        throw new Error('Expecting a digit `0-9` over here.');
+        throw new Error('JSON Syntax Error: missing digits after decimal point');
     }
 
     while (char && Utils.isDigit(char)) {
@@ -224,7 +224,7 @@ JSONLexer.prototype.parseExponent = function () {
     }
 
     if (!Utils.isDigit(char)) {
-        throw new Error('Expecting a digit `0-9` over here.');
+        throw new Error('JSON Syntax Error: missing digits after exponent indicator');
     }
 
     while (char && Utils.isDigit(char)) {
