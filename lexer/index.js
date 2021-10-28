@@ -1,6 +1,11 @@
 const JSONStream = require('../stream');
 const Token = require('./token');
 const Utils = require('./utils');
+const { execStateMachine } = require('./statemachine');
+const NumberStates = require('./states/number');
+const StringStates = require('./states/string');
+const IdentifierStates = require('./states/identifier');
+const WhiteSpacesStates = require('./states/whitespaces');
 
 const symbolMapping = {
     '{': Token.TOKEN_OPENING_BRACE,
@@ -22,44 +27,49 @@ function JSONLexer(json) {
     this.currentChar = null;
 }
 
-JSONLexer.prototype.getChar = function () {
-    let char;
-
-    if (this.currentChar) {
-        char = this.currentChar;
-        this.currentChar = null;
-    } else {
-        char = this.stream.getChar();
-    }
-
-    return char;
-};
-
-JSONLexer.prototype.ungetLastChar = function (char) {
-    if (this.currentChar) {
-        throw new Error('Internal error');
-    }
-
-    this.currentChar = char;
-};
-
 JSONLexer.prototype.getToken = function () {
     let token = null;
+    let char;
     this.skipWhiteSpaces();
-    const char = this.getChar();
+
+    if (char === '\r') {
+        this.stream.getChar();
+    }
+
+    char = this.stream.peekChar();
 
     if (char === null) {
         token = this.createToken(Token.TOKEN_EOF);
-    } else if (char in symbolMapping) {
-        token = this.createToken(symbolMapping[char]);
     } else if (Utils.isCharacterLetter(char)) {
-        this.ungetLastChar(char);
         token = this.parseIdentifier();
     } else if (Utils.isDoubleQuote(char)) {
         token = this.parseString();
     } else if (Utils.isMinusSign(char) || Utils.isDigit(char)) {
-        this.ungetLastChar(char);
         token = this.parseNumber();
+    } else {
+        token = this.parseSymbol();
+    }
+
+    return token;
+};
+
+JSONLexer.prototype.createToken = function (id, value) {
+    // const { line, column } = this.stream.getPositionStatus();
+
+    return {
+        id,
+        value,
+        line: 0,
+        column: 0,
+    };
+};
+
+JSONLexer.prototype.parseSymbol = function () {
+    let token = null;
+    const char = this.stream.getChar();
+
+    if (char in symbolMapping) {
+        token = this.createToken(symbolMapping[char]);
     } else {
         throw new Error(`JSON Syntax Error: unexpected token "${char}"`);
     }
@@ -67,27 +77,8 @@ JSONLexer.prototype.getToken = function () {
     return token;
 };
 
-JSONLexer.prototype.createToken = function (id, value) {
-    const { line, column } = this.stream.getPositionStatus();
-
-    return {
-        id,
-        value,
-        line,
-        column,
-    };
-};
-
 JSONLexer.prototype.parseIdentifier = function () {
-    let identifier = '';
-    let char = this.getChar();
-
-    while (char && Utils.isCharacterLetter(char)) {
-        identifier += char;
-        char = this.getChar();
-    }
-
-    this.ungetLastChar(char);
+    const identifier = execStateMachine.call(this, IdentifierStates);
 
     if (!identifierMapping[identifier]) {
         throw new Error(`JSON Syntax Error: unexpected keyword "${identifier}"`);
@@ -97,154 +88,19 @@ JSONLexer.prototype.parseIdentifier = function () {
 };
 
 JSONLexer.prototype.parseString = function () {
-    let string = '';
-    let char = this.getChar();
-
-    while (char && !Utils.isDoubleQuote(char)) {
-        if (Utils.isBackslash(char)) {
-            string += char;
-            string += this.parseEscape();
-        } else {
-            string += char;
-        }
-        char = this.getChar();
-    }
-
-    if (!Utils.isDoubleQuote(char)) {
-        throw new Error('JSON Syntax Error: unterminated string literal');
-    }
+    const string = execStateMachine.call(this, StringStates);
 
     return this.createToken(Token.TOKEN_STRING, string);
 };
 
-JSONLexer.prototype.parseEscape = function () {
-    const char = this.getChar();
-    let string = char;
-
-    if ('"/\\bfnrtu'.indexOf(char) === -1) {
-        throw new Error(`JSON Syntax Error: bad escape character "\\${char}"`);
-    }
-
-    if (char === 'u') {
-        string += this.parseUnicode();
-    }
-
-    return string;
-};
-
-JSONLexer.prototype.parseUnicode = function () {
-    let unicodeCodes = '';
-
-    for (let i = 0; i < 4; i += 1) {
-        const char = this.getChar();
-
-        if (Utils.isHexadecimal(char)) {
-            unicodeCodes += char;
-        } else {
-            throw new Error(`JSON Syntax Error: bad Unicode escape "${char}"`);
-        }
-    }
-    return unicodeCodes;
-};
-
 JSONLexer.prototype.parseNumber = function () {
-    const number = this.parseInteger() + this.parseFraction() + this.parseExponent();
+    const number = execStateMachine.call(this, NumberStates);
 
     return this.createToken(Token.TOKEN_NUMBER, number);
 };
 
-JSONLexer.prototype.parseInteger = function () {
-    let integer = '';
-    let char = this.getChar();
-
-    if (Utils.isMinusSign(char)) {
-        integer += char;
-        char = this.getChar();
-    }
-
-    if (Utils.isZeroDigit(char)) {
-        integer += char;
-        return integer;
-    }
-
-    if (!Utils.isDigit(char)) {
-        throw new Error(`JSON Syntax Error: expecting a digit here but found "${char}"`);
-    }
-
-    while (char && Utils.isDigit(char)) {
-        integer += char;
-        char = this.getChar();
-    }
-
-    this.ungetLastChar(char);
-
-    return integer;
-};
-
-JSONLexer.prototype.parseFraction = function () {
-    let char = this.getChar();
-    let fraction = '';
-
-    if (!Utils.isDot(char)) {
-        this.ungetLastChar(char);
-        return fraction;
-    }
-
-    fraction += '.';
-    char = this.getChar();
-
-    if (!Utils.isDigit(char)) {
-        throw new Error('JSON Syntax Error: missing digits after decimal point');
-    }
-
-    while (char && Utils.isDigit(char)) {
-        fraction += char;
-        char = this.getChar();
-    }
-
-    this.ungetLastChar(char);
-    return fraction;
-};
-
-JSONLexer.prototype.parseExponent = function () {
-    let char = this.getChar();
-    let exponent = '';
-
-    if (!Utils.isExponent(char)) {
-        this.ungetLastChar(char);
-        return exponent;
-    }
-
-    exponent += char;
-    char = this.getChar();
-
-    if (Utils.isMinusSign(char) || Utils.isPlusSign(char)) {
-        exponent += char;
-        char = this.getChar();
-    }
-
-    if (!Utils.isDigit(char)) {
-        throw new Error('JSON Syntax Error: missing digits after exponent indicator');
-    }
-
-    while (char && Utils.isDigit(char)) {
-        exponent += char;
-        char = this.getChar();
-    }
-
-    this.ungetLastChar(char);
-
-    return exponent;
-};
-
 JSONLexer.prototype.skipWhiteSpaces = function () {
-    let char = this.getChar();
-
-    while (char !== null && Utils.isWhiteSpace(char)) {
-        char = this.getChar();
-    }
-
-    this.ungetLastChar(char);
+    execStateMachine.call(this, WhiteSpacesStates);
 };
 
 module.exports = JSONLexer;

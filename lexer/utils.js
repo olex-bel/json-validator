@@ -18,6 +18,10 @@ function isZeroDigit(char) {
     return char === '0';
 }
 
+function isOneNineDigit(char) {
+    return (/[1-9]/).test(char);
+}
+
 function isWhiteSpace(char) {
     return char === ' ' || char === '\t';
 }
@@ -43,6 +47,10 @@ function isExponent(char) {
     return char === 'e' || char === 'E';
 }
 
+function isNewLine(char) {
+    return char === '\r';
+}
+
 module.exports = {
     isCharacterLetter,
     isMinusSign,
@@ -53,6 +61,8 @@ module.exports = {
     isHexadecimal,
     isBackslash,
     isZeroDigit,
+    isOneNineDigit,
     isDot,
     isExponent,
+    isNewLine,
 };
