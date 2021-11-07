@@ -1,4 +1,5 @@
 const JSONStream = require('../stream');
+const LexerPosition = require('./lexerposition');
 const Token = require('./token');
 const Utils = require('./utils');
 const { execStateMachine } = require('./statemachine');
@@ -22,21 +23,25 @@ const identifierMapping = {
     false: Token.TOKEN_FALSE,
 };
 
+const SNIPPET_SIZE = 10;
+
 function JSONLexer(json) {
     this.stream = new JSONStream(json);
     this.currentChar = null;
+    this.position = new LexerPosition();
 }
 
+JSONLexer.prototype.currentCodeSnippet = function () {
+    return this.stream.currentCodeSnippet(SNIPPET_SIZE);
+};
+
 JSONLexer.prototype.getToken = function () {
-    let token = null;
-    let char;
+    this.skipWhiteSpaces();
+    this.skipNewLines();
     this.skipWhiteSpaces();
 
-    if (char === '\r') {
-        this.stream.getChar();
-    }
-
-    char = this.stream.peekChar();
+    let token = null;
+    const char = this.peekChar();
 
     if (char === null) {
         token = this.createToken(Token.TOKEN_EOF);
@@ -54,24 +59,24 @@ JSONLexer.prototype.getToken = function () {
 };
 
 JSONLexer.prototype.createToken = function (id, value) {
-    // const { line, column } = this.stream.getPositionStatus();
+    const { line, column } = this.position;
 
     return {
         id,
         value,
-        line: 0,
-        column: 0,
+        line,
+        column,
     };
 };
 
 JSONLexer.prototype.parseSymbol = function () {
     let token = null;
-    const char = this.stream.getChar();
+    const char = this.getChar();
 
     if (char in symbolMapping) {
         token = this.createToken(symbolMapping[char]);
     } else {
-        throw new Error(`JSON Syntax Error: unexpected token "${char}"`);
+        token = this.createToken(Token.TOKEN_UNKNOWN, char);
     }
 
     return token;
@@ -101,6 +106,29 @@ JSONLexer.prototype.parseNumber = function () {
 
 JSONLexer.prototype.skipWhiteSpaces = function () {
     execStateMachine.call(this, WhiteSpacesStates);
+};
+
+JSONLexer.prototype.getChar = function () {
+    this.position.increaseColumnNumber();
+    return this.stream.getChar();
+};
+
+JSONLexer.prototype.peekChar = function () {
+    return this.stream.peekChar();
+};
+
+JSONLexer.prototype.skipChar = function () {
+    this.getChar();
+};
+
+JSONLexer.prototype.skipNewLines = function () {
+    let char = this.peekChar();
+
+    while (char === '\r') {
+        this.position.increaseLineNumber();
+        this.skipChar();
+        char = this.peekChar();
+    }
 };
 
 module.exports = JSONLexer;

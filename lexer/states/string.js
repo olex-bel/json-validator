@@ -1,118 +1,114 @@
 const Utils = require('../utils');
+const ActionResult = require('../actionresult');
 
 module.exports = {
     START(char) {
-        let nextState = 'ERROR';
+        const result = new ActionResult();
 
         if (Utils.isDoubleQuote(char)) {
-            nextState = 'STRING';
+            result.nextState = 'STRING';
+            result.skipChar = true;
+        } else {
+            result.nextState = 'ERROR';
+            result.errorMessage = `SyntaxError: expected '"' but ${char} found`;
         }
 
-        return {
-            nextState,
-            skipChar: true,
-        };
+        return result;
     },
 
     STRING(char) {
-        let nextState = 'STRING';
-        let readChar = true;
-        let skipChar = false;
+        const result = new ActionResult();
 
         if (Utils.isDoubleQuote(char)) {
-            skipChar = true;
-            readChar = false;
-            nextState = 'END';
-        } else if (Utils.isNewLine(char) || char === null) {
-            nextState = 'ERROR';
-            readChar = false;
+            result.skipChar = true;
+            result.nextState = 'END';
+        } else if (Utils.isNewLine(char)) {
+            result.nextState = 'ERROR';
+            result.errorMessage = 'SyntaxError: unterminated string';
+        } else if (char === null) {
+            result.nextState = 'ERROR';
+            result.errorMessage = 'SyntaxError: end of data when \'"\' was expected';
         } else if (Utils.isBackslash(char)) {
-            nextState = 'ESCAPE';
-            readChar = true;
+            result.nextState = 'ESCAPE';
+            result.readChar = true;
+        } else {
+            result.nextState = 'STRING';
+            result.readChar = true;
         }
 
-        return {
-            nextState,
-            readChar,
-            skipChar,
-        };
+        return result;
     },
 
     ESCAPE(char) {
-        let nextState = 'ERROR';
-        let readChar = false;
+        const result = new ActionResult();
 
         if ('"/\\bfnrt'.indexOf(char) !== -1) {
-            nextState = 'STRING';
-            readChar = true;
+            result.nextState = 'STRING';
+            result.readChar = true;
         } else if (char === 'u') {
-            nextState = 'UNICODE_FIRST_NUMBER';
-            readChar = true;
+            result.nextState = 'UNICODE_FIRST_NUMBER';
+            result.readChar = true;
+        } else {
+            result.nextState = 'ERROR';
+            result.errorMessage = `SyntaxError: bad escape character "\\${char}"`;
         }
 
-        return {
-            nextState,
-            readChar,
-        };
+        return result;
     },
 
     UNICODE_FIRST_NUMBER(char) {
-        let nextState = 'ERROR';
-        let readChar = false;
+        const result = new ActionResult();
 
         if (Utils.isHexadecimal(char)) {
-            nextState = 'UNICODE_SECOND_NUMBER';
-            readChar = true;
+            result.nextState = 'UNICODE_SECOND_NUMBER';
+            result.readChar = true;
+        } else {
+            result.nextState = 'ERROR';
+            result.errorMessage = 'SyntaxError: bad Unicode escape';
         }
 
-        return {
-            nextState,
-            readChar,
-        };
+        return result;
     },
 
     UNICODE_SECOND_NUMBER(char) {
-        let nextState = 'ERROR';
-        let readChar = false;
+        const result = new ActionResult();
 
         if (Utils.isHexadecimal(char)) {
-            nextState = 'UNICODE_THIRD_NUMBER';
-            readChar = true;
+            result.nextState = 'UNICODE_THIRD_NUMBER';
+            result.readChar = true;
+        } else {
+            result.nextState = 'ERROR';
+            result.errorMessage = 'SyntaxError: bad Unicode escape';
         }
 
-        return {
-            nextState,
-            readChar,
-        };
+        return result;
     },
 
     UNICODE_THIRD_NUMBER(char) {
-        let nextState = 'ERROR';
-        let readChar = false;
+        const result = new ActionResult();
 
         if (Utils.isHexadecimal(char)) {
-            nextState = 'UNICODE_FORTH_NUMBER';
-            readChar = true;
+            result.nextState = 'UNICODE_FORTH_NUMBER';
+            result.readChar = true;
+        } else {
+            result.nextState = 'ERROR';
+            result.errorMessage = 'SyntaxError: bad Unicode escape';
         }
 
-        return {
-            nextState,
-            readChar,
-        };
+        return result;
     },
 
     UNICODE_FORTH_NUMBER(char) {
-        let nextState = 'ERROR';
-        let readChar = false;
+        const result = new ActionResult();
 
         if (Utils.isHexadecimal(char)) {
-            nextState = 'STRING';
-            readChar = true;
+            result.nextState = 'STRING';
+            result.readChar = true;
+        } else {
+            result.nextState = 'ERROR';
+            result.errorMessage = 'SyntaxError: bad Unicode escape';
         }
 
-        return {
-            nextState,
-            readChar,
-        };
+        return result;
     },
 };

@@ -27,14 +27,22 @@ JSONLinter.prototype.readNextToken = function () {
     return this.currentToken;
 };
 
-JSONLinter.prototype.checkExpectToken = function (token, expectTokenId) {
-    if (token.id !== expectTokenId) {
-        throw new Error(`Expected token ${expectTokenId} but found ${token.id}`);
+JSONLinter.prototype.checkExpectToken = function (params) {
+    const { expectedTokenID, currentTokenId, errorMessage } = params;
+
+    if (expectedTokenID !== currentTokenId) {
+        throw new Error(errorMessage);
     }
 };
 
 JSONLinter.prototype.validate = function () {
-    this.parseValue();
+    try {
+        this.parseValue();
+    } catch (e) {
+        console.log(e.message);
+        console.log(this.lexer.currentCodeSnippet());
+        throw e;
+    }
 };
 
 JSONLinter.prototype.parseValue = function () {
@@ -46,15 +54,15 @@ JSONLinter.prototype.parseValue = function () {
         this.parseArray();
     } else if (SCALAR_VALUE_TOKENS.includes(this.currentToken.id)) {
         this.readNextToken();
+    } else if (token.id === Token.TOKEN_EOF) {
+        throw new Error('JSON Syntax Error: unexpected end of data');
     } else {
-        throw new Error('Invalid value');
+        throw new Error(`JSON Syntax Error: expected "STRING", "NUMBER", "NULL", "TRUE", "FALSE", "{", "[" but was found ${token.value}`);
     }
 };
 
 JSONLinter.prototype.parseObject = function () {
-    let token = this.getCurrentToken();
-    this.checkExpectToken(token, Token.TOKEN_OPENING_BRACE);
-    token = this.readNextToken();
+    let token = this.readNextToken();
 
     if (token.id === Token.TOKEN_CLOSING_BRACE) {
         this.readNextToken();
@@ -63,7 +71,12 @@ JSONLinter.prototype.parseObject = function () {
 
     this.parseMembers();
 
-    this.checkExpectToken(this.getCurrentToken(), Token.TOKEN_CLOSING_BRACE);
+    token = this.getCurrentToken();
+    this.checkExpectToken({
+        expectedTokenID: Token.TOKEN_CLOSING_BRACE,
+        currentTokenId: token.id,
+        errorMessage: 'JSON Syntax Error: expected property name or "}"',
+    });
     this.readNextToken();
 };
 
@@ -71,9 +84,17 @@ JSONLinter.prototype.parseMembers = function () {
     let token = this.getCurrentToken();
 
     for (; ;) {
-        this.checkExpectToken(token, Token.TOKEN_STRING);
+        this.checkExpectToken({
+            expectedTokenID: Token.TOKEN_STRING,
+            currentTokenId: token.id,
+            errorMessage: 'JSON Syntax Error: expected property name',
+        });
         token = this.readNextToken();
-        this.checkExpectToken(token, Token.TOKEN_COLON);
+        this.checkExpectToken({
+            expectedTokenID: Token.TOKEN_COLON,
+            currentTokenId: token.id,
+            errorMessage: 'JSON Syntax Error: expected ":" after property name in object',
+        });
         token = this.readNextToken();
         this.parseValue();
         token = this.getCurrentToken();
@@ -83,15 +104,13 @@ JSONLinter.prototype.parseMembers = function () {
         } else if (token.id === Token.TOKEN_COMMA) {
             token = this.readNextToken();
         } else {
-            throw new Error(`Expected ${Token.TOKEN_CLOSING_BRACE} but found: ${token.id}`);
+            throw new Error('JSON Syntax Error: expected "," or "}" after property value in object');
         }
     }
 };
 
 JSONLinter.prototype.parseArray = function () {
-    let token = this.getCurrentToken();
-    this.checkExpectToken(token, Token.TOKEN_OPENING_BRACKET);
-    token = this.readNextToken();
+    let token = this.readNextToken();
 
     if (token.id === Token.TOKEN_CLOSING_BRACKET) {
         this.readNextToken();
@@ -99,7 +118,12 @@ JSONLinter.prototype.parseArray = function () {
     }
 
     this.parseElements();
-    this.checkExpectToken(this.getCurrentToken(), Token.TOKEN_CLOSING_BRACKET);
+    token = this.getCurrentToken();
+    this.checkExpectToken({
+        expectedTokenID: Token.TOKEN_CLOSING_BRACKET,
+        currentTokenId: token.id,
+        errorMessage: 'JSON Syntax Error: expected "," or "]" after array element',
+    });
     this.readNextToken();
 };
 
@@ -115,7 +139,7 @@ JSONLinter.prototype.parseElements = function () {
         } else if (token.id === Token.TOKEN_COMMA) {
             this.readNextToken();
         } else {
-            throw new Error(`Expected ${Token.TOKEN_CLOSING_BRACKET} but found: ${token.id}`);
+            throw new Error('JSON Syntax Error: expected "," or "]" after array element');
         }
     }
 };

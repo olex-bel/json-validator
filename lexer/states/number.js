@@ -1,120 +1,117 @@
 const Utils = require('../utils');
+const ActionResult = require('../actionresult');
 
 module.exports = {
     START(char) {
-        let nextState = 'ERROR';
-        let readChar = false;
+        const result = new ActionResult();
 
         if (Utils.isMinusSign(char)) {
-            nextState = 'INTEGER';
-            readChar = true;
+            result.nextState = 'INTEGER';
+            result.readChar = true;
         } else if (Utils.isOneNineDigit(char)) {
-            nextState = 'INTEGER';
+            result.nextState = 'INTEGER';
         } else if (Utils.isZeroDigit(char)) {
-            nextState = 'START_WITH_ZERO';
-            readChar = true;
+            result.nextState = 'START_WITH_ZERO';
+            result.readChar = true;
+        } else {
+            result.nextState = 'ERROR';
+            result.errorMessage = `SyntaxError: expected numeric character but ${char} found`;
         }
 
-        return {
-            nextState, readChar,
-        };
+        return result;
     },
 
     START_WITH_ZERO(char) {
-        let nextState = 'END';
-        let readChar = false;
+        const result = new ActionResult();
 
         if (Utils.isDot(char)) {
-            nextState = 'FRACTION_START';
-            readChar = true;
+            result.nextState = 'FRACTION_START';
+            result.readChar = true;
         } else if (Utils.isExponent(char)) {
-            nextState = 'EXPONENT_SIGN';
-            readChar = true;
+            result.nextState = 'EXPONENT_SIGN';
+            result.readChar = true;
+        } else {
+            result.nextState = 'END';
         }
 
-        return {
-            nextState, readChar,
-        };
+        return result;
     },
 
     INTEGER(char) {
-        let nextState = 'END';
-        let readChar = false;
+        const result = new ActionResult();
 
         if (Utils.isDigit(char)) {
-            nextState = 'INTEGER';
-            readChar = true;
+            result.nextState = 'INTEGER';
+            result.readChar = true;
         } else if (Utils.isDot(char)) {
-            nextState = 'FRACTION_START';
-            readChar = true;
+            result.nextState = 'FRACTION_START';
+            result.readChar = true;
         } else if (Utils.isExponent(char)) {
-            nextState = 'EXPONENT_SIGN';
-            readChar = true;
+            result.nextState = 'EXPONENT_SIGN';
+            result.readChar = true;
+        } else {
+            result.nextState = 'END';
         }
 
-        return {
-            nextState, readChar,
-        };
+        return result;
     },
 
     FRACTION_START(char) {
-        let nextState = 'ERROR';
-        const readChar = false;
+        const result = new ActionResult();
 
         if (Utils.isDigit(char)) {
-            nextState = 'FRACTION';
+            result.nextState = 'FRACTION';
+        } else {
+            result.nextState = 'ERROR';
+            result.errorMessage = 'SyntaxError: missing digits after decimal point';
         }
 
-        return {
-            nextState, readChar,
-        };
+        return result;
     },
 
     FRACTION(char) {
-        let nextState = 'END';
-        let readChar = false;
+        const result = new ActionResult();
 
         if (Utils.isDigit(char)) {
-            nextState = 'FRACTION';
-            readChar = true;
+            result.nextState = 'FRACTION';
+            result.readChar = true;
         } else if (Utils.isExponent(char)) {
-            nextState = 'EXPONENT_SIGN';
-            readChar = true;
+            result.nextState = 'EXPONENT_SIGN';
+            result.readChar = true;
+        } else {
+            result.nextState = 'END';
         }
 
-        return {
-            nextState, readChar,
-        };
+        return result;
     },
 
     EXPONENT_SIGN(char) {
-        let nextState = 'ERROR';
-        let readChar = false;
+        const result = new ActionResult();
 
         if (Utils.isMinusSign(char) || Utils.isPlusSign(char)) {
-            nextState = 'EXPONENT';
-            readChar = true;
+            result.nextState = 'EXPONENT';
+            result.readChar = true;
         } else if (Utils.isDigit(char)) {
-            nextState = 'EXPONENT';
-            readChar = true;
+            result.nextState = 'EXPONENT';
+            result.readChar = true;
+        } else {
+            result.nextState = 'ERROR';
+            result.errorMessage = 'SyntaxError: missing digits after exponent indicator';
         }
 
-        return {
-            nextState, readChar,
-        };
+        return result;
     },
 
     EXPONENT(char) {
-        let nextState = 'END';
-        let readChar = false;
+        const result = new ActionResult();
 
         if (Utils.isDigit(char)) {
-            nextState = 'EXPONENT';
-            readChar = true;
+            result.nextState = 'EXPONENT';
+            result.readChar = true;
+        } else {
+            result.nextState = 'END';
         }
 
-        return {
-            nextState, readChar,
-        };
+        return result;
     },
 };

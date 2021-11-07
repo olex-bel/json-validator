@@ -32,6 +32,14 @@ test('should parse empty object {}', () => {
     }).not.toThrow();
 });
 
+test('should parse empty object with new line {}', () => {
+    const linter = new JSONLinter('{ \r\r\r }');
+
+    expect(() => {
+        linter.validate();
+    }).not.toThrow();
+});
+
 test('should throw error if there is no close brace', () => {
     const linter = new JSONLinter('{ ');
 
@@ -50,6 +58,14 @@ test('should parse empty array []', () => {
 
 test('should throw error if there is no close bracket', () => {
     const linter = new JSONLinter('[');
+
+    expect(() => {
+        linter.validate();
+    }).toThrow();
+});
+
+test('should throw error if objects property does not have value', () => {
+    const linter = new JSONLinter('{"test",}');
 
     expect(() => {
         linter.validate();

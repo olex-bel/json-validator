@@ -1,5 +1,5 @@
 function isCharacterLetter(char) {
-    return (/[a-zA-Z]/).test(char);
+    return char && (/[a-zA-Z]/).test(char);
 }
 
 function isMinusSign(char) {

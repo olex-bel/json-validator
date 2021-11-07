@@ -1,4 +1,5 @@
 module.exports = {
+    TOKEN_UNKNOWN: 0,
     TOKEN_STRING: 1,
     TOKEN_NUMBER: 2,
     TOKEN_OPENING_BRACE: 3,

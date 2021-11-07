@@ -3,19 +3,21 @@ function execStateMachine(stateMachine) {
     let value = '';
 
     for (; ;) {
-        const char = this.stream.peekChar();
-        const { nextState, readChar, skipChar } = stateMachine[state](char);
+        const char = this.peekChar();
+        const {
+            nextState, readChar, skipChar, errorMessage,
+        } = stateMachine[state](char);
 
         if (skipChar) {
-            this.stream.getChar();
+            this.getChar();
         } else if (readChar) {
-            value += this.stream.getChar();
+            value += this.getChar();
         }
 
         if (nextState === 'END') {
             break;
         } else if (nextState === 'ERROR') {
-            throw new Error('Something wrong!');
+            throw new Error(errorMessage);
         }
 
         state = nextState;

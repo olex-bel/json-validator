@@ -167,12 +167,13 @@ test('should return NUMBER tokens for number from the list', () => {
     });
 });
 
-test('should throw an error for number that start with +', () => {
+test('should return UNKNOWN token for number that start with +', () => {
     const lexer = new JSONLexer('+1');
 
-    expect(() => {
-        lexer.getToken();
-    }).toThrow();
+    const token = lexer.getToken();
+
+    expect(token.id).toBe(Token.TOKEN_UNKNOWN);
+    expect(token.value).toBe('+');
 });
 
 test('should throw an error for number string with missing fraction', () => {

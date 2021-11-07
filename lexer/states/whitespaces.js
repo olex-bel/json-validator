@@ -1,33 +1,30 @@
 const Utils = require('../utils');
+const ActionResult = require('../actionresult');
 
 module.exports = {
     START(char) {
-        let nextState = 'END';
-        let readChar = false;
+        const result = new ActionResult();
 
         if (Utils.isWhiteSpace(char)) {
-            nextState = 'WHITESPACES';
-            readChar = true;
+            result.nextState = 'WHITESPACES';
+            result.readChar = true;
+        } else {
+            result.nextState = 'END';
         }
 
-        return {
-            nextState,
-            readChar,
-        };
+        return result;
     },
 
     WHITESPACES(char) {
-        let nextState = 'END';
-        let readChar = false;
+        const result = new ActionResult();
 
         if (Utils.isWhiteSpace(char)) {
-            nextState = 'WHITESPACES';
-            readChar = true;
+            result.nextState = 'WHITESPACES';
+            result.readChar = true;
+        } else {
+            result.nextState = 'END';
         }
 
-        return {
-            nextState,
-            readChar,
-        };
+        return result;
     },
 };

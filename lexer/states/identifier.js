@@ -1,29 +1,29 @@
 const Utils = require('../utils');
+const ActionResult = require('../actionresult');
 
 module.exports = {
     START(char) {
-        const result = {
-            nextState: 'ERROR',
-            readChar: false,
-        };
+        const result = new ActionResult();
 
         if (char && Utils.isCharacterLetter(char)) {
             result.readChar = true;
             result.nextState = 'IDENTIFIER';
+        } else {
+            result.nextState = 'ERROR';
+            result.errorMessage = `SyntaxError: expected alphabetic character but ${char} found`;
         }
 
         return result;
     },
 
     IDENTIFIER(char) {
-        const result = {
-            nextState: 'END',
-            readChar: false,
-        };
+        const result = new ActionResult();
 
         if (char && Utils.isCharacterLetter(char)) {
             result.readChar = true;
             result.nextState = 'IDENTIFIER';
+        } else {
+            result.nextState = 'END';
         }
 
         return result;

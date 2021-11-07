@@ -27,7 +27,7 @@ test('should return character from string', () => {
     expect(resultText).toEqual(testText);
 });
 
-test('should ignore new line character', () => {
+test('should normalize new line character', () => {
     const testText1 = '\r\r\ra';
     const testText2 = '\n\n\rb';
     const testText3 = '\r\n\n\rc';
