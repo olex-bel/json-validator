@@ -17,7 +17,8 @@ function execStateMachine(stateMachine) {
         if (nextState === 'END') {
             break;
         } else if (nextState === 'ERROR') {
-            throw new Error(errorMessage);
+            const { line, column } = this.position;
+            throw new Error(`${errorMessage} at line ${line} column ${column} of the JSON data`);
         }
 
         state = nextState;

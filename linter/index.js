@@ -28,21 +28,34 @@ JSONLinter.prototype.readNextToken = function () {
 };
 
 JSONLinter.prototype.checkExpectToken = function (params) {
-    const { expectedTokenID, currentTokenId, errorMessage } = params;
+    const { expectedTokenID, currentToken, errorMessage } = params;
 
-    if (expectedTokenID !== currentTokenId) {
-        throw new Error(errorMessage);
+    if (expectedTokenID !== currentToken.id) {
+        throw new Error(`${errorMessage} at line ${currentToken.line} column ${currentToken.column} of the JSON data`);
     }
 };
 
 JSONLinter.prototype.validate = function () {
+    let status = {
+        valid: true,
+    };
+
     try {
         this.parseValue();
+        this.checkExpectToken({
+            expectedTokenID: Token.TOKEN_EOF,
+            currentToken: this.getCurrentToken(),
+            errorMessage: 'JSON Syntax Error: unexpected non-whitespace character after JSON data',
+        });
     } catch (e) {
-        console.log(e.message);
-        console.log(this.lexer.currentCodeSnippet());
-        throw e;
+        status = {
+            valid: false,
+            errorMessage: e.message,
+            errorCodeSnippet: this.lexer.currentCodeSnippet(),
+        };
     }
+
+    return status;
 };
 
 JSONLinter.prototype.parseValue = function () {
@@ -55,9 +68,9 @@ JSONLinter.prototype.parseValue = function () {
     } else if (SCALAR_VALUE_TOKENS.includes(this.currentToken.id)) {
         this.readNextToken();
     } else if (token.id === Token.TOKEN_EOF) {
-        throw new Error('JSON Syntax Error: unexpected end of data');
+        throw new Error(`JSON Syntax Error: unexpected end of data at line ${token.line} column ${token.column} of the JSON data`);
     } else {
-        throw new Error(`JSON Syntax Error: expected "STRING", "NUMBER", "NULL", "TRUE", "FALSE", "{", "[" but was found ${token.value}`);
+        throw new Error(`JSON Syntax Error: expected "STRING", "NUMBER", "NULL", "TRUE", "FALSE", "{", "[" but was found ${token.value} at line ${token.line} column ${token.column} of the JSON data`);
     }
 };
 
@@ -74,7 +87,7 @@ JSONLinter.prototype.parseObject = function () {
     token = this.getCurrentToken();
     this.checkExpectToken({
         expectedTokenID: Token.TOKEN_CLOSING_BRACE,
-        currentTokenId: token.id,
+        currentToken: token,
         errorMessage: 'JSON Syntax Error: expected property name or "}"',
     });
     this.readNextToken();
@@ -86,13 +99,13 @@ JSONLinter.prototype.parseMembers = function () {
     for (; ;) {
         this.checkExpectToken({
             expectedTokenID: Token.TOKEN_STRING,
-            currentTokenId: token.id,
+            currentToken: token,
             errorMessage: 'JSON Syntax Error: expected property name',
         });
         token = this.readNextToken();
         this.checkExpectToken({
             expectedTokenID: Token.TOKEN_COLON,
-            currentTokenId: token.id,
+            currentToken: token,
             errorMessage: 'JSON Syntax Error: expected ":" after property name in object',
         });
         token = this.readNextToken();
@@ -121,7 +134,7 @@ JSONLinter.prototype.parseArray = function () {
     token = this.getCurrentToken();
     this.checkExpectToken({
         expectedTokenID: Token.TOKEN_CLOSING_BRACKET,
-        currentTokenId: token.id,
+        currentToken: token,
         errorMessage: 'JSON Syntax Error: expected "," or "]" after array element',
     });
     this.readNextToken();
@@ -139,7 +152,7 @@ JSONLinter.prototype.parseElements = function () {
         } else if (token.id === Token.TOKEN_COMMA) {
             this.readNextToken();
         } else {
-            throw new Error('JSON Syntax Error: expected "," or "]" after array element');
+            throw new Error(`JSON Syntax Error: expected "," or "]" after array element at line ${token.line} column ${token.column} of the JSON data`);
         }
     }
 };

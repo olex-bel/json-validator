@@ -6,7 +6,6 @@ const { execStateMachine } = require('./statemachine');
 const NumberStates = require('./states/number');
 const StringStates = require('./states/string');
 const IdentifierStates = require('./states/identifier');
-const WhiteSpacesStates = require('./states/whitespaces');
 
 const symbolMapping = {
     '{': Token.TOKEN_OPENING_BRACE,
@@ -36,15 +35,19 @@ JSONLexer.prototype.currentCodeSnippet = function () {
 };
 
 JSONLexer.prototype.getToken = function () {
-    this.skipWhiteSpaces();
-    this.skipNewLines();
-    this.skipWhiteSpaces();
+    this.skipWhiteSpacesAndNewLines();
 
     let token = null;
     const char = this.peekChar();
 
     if (char === null) {
-        token = this.createToken(Token.TOKEN_EOF);
+        const { line, column } = this.position;
+
+        token = this.createToken({
+            id: Token.TOKEN_EOF,
+            line,
+            column,
+        });
     } else if (Utils.isCharacterLetter(char)) {
         token = this.parseIdentifier();
     } else if (Utils.isDoubleQuote(char)) {
@@ -58,8 +61,10 @@ JSONLexer.prototype.getToken = function () {
     return token;
 };
 
-JSONLexer.prototype.createToken = function (id, value) {
-    const { line, column } = this.position;
+JSONLexer.prototype.createToken = function (params) {
+    const {
+        id, value, line, column,
+    } = params;
 
     return {
         id,
@@ -71,41 +76,60 @@ JSONLexer.prototype.createToken = function (id, value) {
 
 JSONLexer.prototype.parseSymbol = function () {
     let token = null;
+    const { line, column } = this.position;
     const char = this.getChar();
 
     if (char in symbolMapping) {
-        token = this.createToken(symbolMapping[char]);
+        token = this.createToken({ id: symbolMapping[char], column, line });
     } else {
-        token = this.createToken(Token.TOKEN_UNKNOWN, char);
+        token = this.createToken({
+            id: Token.TOKEN_UNKNOWN, value: char, column, line,
+        });
     }
 
     return token;
 };
 
 JSONLexer.prototype.parseIdentifier = function () {
+    const { line, column } = this.position;
     const identifier = execStateMachine.call(this, IdentifierStates);
 
     if (!identifierMapping[identifier]) {
-        throw new Error(`JSON Syntax Error: unexpected keyword "${identifier}"`);
+        throw new Error(`JSON Syntax Error: unexpected keyword "${identifier}" at line ${line} column ${column} of the JSON data`);
     }
 
-    return this.createToken(identifierMapping[identifier]);
+    return this.createToken({ id: identifierMapping[identifier], column, line });
 };
 
 JSONLexer.prototype.parseString = function () {
+    const { line, column } = this.position;
     const string = execStateMachine.call(this, StringStates);
 
-    return this.createToken(Token.TOKEN_STRING, string);
+    return this.createToken({
+        id: Token.TOKEN_STRING, value: string, column, line,
+    });
 };
 
 JSONLexer.prototype.parseNumber = function () {
+    const { line, column } = this.position;
     const number = execStateMachine.call(this, NumberStates);
 
-    return this.createToken(Token.TOKEN_NUMBER, number);
+    return this.createToken({
+        id: Token.TOKEN_NUMBER, value: number, column, line,
+    });
 };
 
-JSONLexer.prototype.skipWhiteSpaces = function () {
-    execStateMachine.call(this, WhiteSpacesStates);
+JSONLexer.prototype.skipWhiteSpacesAndNewLines = function () {
+    let char = this.peekChar();
+
+    while (char === '\r' || Utils.isWhiteSpace(char)) {
+        if (char === '\r') {
+            this.position.increaseLineNumber();
+        }
+
+        this.skipChar();
+        char = this.peekChar();
+    }
 };
 
 JSONLexer.prototype.getChar = function () {
@@ -119,16 +143,6 @@ JSONLexer.prototype.peekChar = function () {
 
 JSONLexer.prototype.skipChar = function () {
     this.getChar();
-};
-
-JSONLexer.prototype.skipNewLines = function () {
-    let char = this.peekChar();
-
-    while (char === '\r') {
-        this.position.increaseLineNumber();
-        this.skipChar();
-        char = this.peekChar();
-    }
 };
 
 module.exports = JSONLexer;

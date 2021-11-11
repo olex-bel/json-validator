@@ -2,82 +2,62 @@ const JSONLinter = require('../linter');
 
 test('should parse null value', () => {
     const linter = new JSONLinter('null');
-
-    expect(() => {
-        linter.validate();
-    }).not.toThrow();
+    const status = linter.validate();
+    expect(status.valid).toBe(true);
 });
 
 test('should parse true value', () => {
     const linter = new JSONLinter('true');
-
-    expect(() => {
-        linter.validate();
-    }).not.toThrow();
+    const status = linter.validate();
+    expect(status.valid).toBe(true);
 });
 
 test('should parse true value', () => {
     const linter = new JSONLinter('false');
-
-    expect(() => {
-        linter.validate();
-    }).not.toThrow();
+    const status = linter.validate();
+    expect(status.valid).toBe(true);
 });
 
 test('should parse empty object {}', () => {
     const linter = new JSONLinter('{  }');
-
-    expect(() => {
-        linter.validate();
-    }).not.toThrow();
+    const status = linter.validate();
+    expect(status.valid).toBe(true);
 });
 
 test('should parse empty object with new line {}', () => {
     const linter = new JSONLinter('{ \r\r\r }');
-
-    expect(() => {
-        linter.validate();
-    }).not.toThrow();
+    const status = linter.validate();
+    expect(status.valid).toBe(true);
 });
 
 test('should throw error if there is no close brace', () => {
     const linter = new JSONLinter('{ ');
-
-    expect(() => {
-        linter.validate();
-    }).toThrow();
+    const status = linter.validate();
+    expect(status.valid).toBe(false);
 });
 
 test('should parse empty array []', () => {
     const linter = new JSONLinter('[]');
-
-    expect(() => {
-        linter.validate();
-    }).not.toThrow();
+    const status = linter.validate();
+    expect(status.valid).toBe(true);
 });
 
 test('should throw error if there is no close bracket', () => {
     const linter = new JSONLinter('[');
-
-    expect(() => {
-        linter.validate();
-    }).toThrow();
+    const status = linter.validate();
+    expect(status.valid).toBe(false);
 });
 
 test('should throw error if objects property does not have value', () => {
     const linter = new JSONLinter('{"test",}');
-
-    expect(() => {
-        linter.validate();
-    }).toThrow();
+    const status = linter.validate();
+    expect(status.valid).toBe(false);
 });
 
 test('should parse array', () => {
     const linter = new JSONLinter('[true, false, null, null, true, "aaa"]');
-
-    expect(() => {
-        linter.validate();
-    }).not.toThrow();
+    const status = linter.validate();
+    expect(status.valid).toBe(true);
 });
 
 test('should parse object', () => {
@@ -90,10 +70,8 @@ test('should parse object', () => {
         prop6: [null],
     };
     const linter = new JSONLinter(JSON.stringify(obj));
-
-    expect(() => {
-        linter.validate();
-    }).not.toThrow();
+    const status = linter.validate();
+    expect(status.valid).toBe(true);
 });
 
 test('should parse multiple level object', () => {
@@ -111,10 +89,8 @@ test('should parse multiple level object', () => {
         },
     };
     const linter = new JSONLinter(JSON.stringify(obj));
-
-    expect(() => {
-        linter.validate();
-    }).not.toThrow();
+    const status = linter.validate();
+    expect(status.valid).toBe(true);
 });
 
 test('should validate object with one member', () => {
@@ -122,10 +98,8 @@ test('should validate object with one member', () => {
         amount: 20.45,
     };
     const linter = new JSONLinter(JSON.stringify(testObject));
-
-    expect(() => {
-        linter.validate();
-    }).not.toThrow();
+    const status = linter.validate();
+    expect(status.valid).toBe(true);
 });
 
 test('should validate object with multiple members', () => {
@@ -137,10 +111,8 @@ test('should validate object with multiple members', () => {
         empty: null,
     };
     const linter = new JSONLinter(JSON.stringify(testObject));
-
-    expect(() => {
-        linter.validate();
-    }).not.toThrow();
+    const status = linter.validate();
+    expect(status.valid).toBe(true);
 });
 
 test('should validate object with string members in different languages', () => {
@@ -151,10 +123,8 @@ test('should validate object with string members in different languages', () => 
         Slovak: 'Slovenčina',
     };
     const linter = new JSONLinter(JSON.stringify(testObject));
-
-    expect(() => {
-        linter.validate();
-    }).not.toThrow();
+    const status = linter.validate();
+    expect(status.valid).toBe(true);
 });
 
 test('should validate object with string members with unicode', () => {
@@ -164,8 +134,36 @@ test('should validate object with string members with unicode', () => {
         'Vive Unicode': '\ud835\udce5\ud835\udcf2\ud835\udcff\ud835\udcee \ud835\udce4\ud835\udcf7\ud835\udcf2\ud835\udcec\ud835\udcf8\ud835\udced\ud835\udcee',
     };
     const linter = new JSONLinter(JSON.stringify(testObject));
+    const status = linter.validate();
+    expect(status.valid).toBe(true);
+});
 
-    expect(() => {
-        linter.validate();
-    }).not.toThrow();
+test('should return error if there is non whitespace symbol after JSON data', () => {
+    const linter = new JSONLinter('[]]');
+    const status = linter.validate();
+    expect(status.valid).toBe(false);
+});
+
+test('should return error if there array is not closed', () => {
+    const linter = new JSONLinter('[1');
+    const status = linter.validate();
+    expect(status.valid).toBe(false);
+});
+
+test('should parse array with new lines', () => {
+    const linter = new JSONLinter('[1,\r \r2\r,\r\r\r3]');
+    const status = linter.validate();
+    expect(status.valid).toBe(true);
+});
+
+test('should parse object with new lines', () => {
+    const linter = new JSONLinter('{"a"\r:1\r,\r\r"b":2\r\r}');
+    const status = linter.validate();
+    expect(status.valid).toBe(true);
+});
+
+test('should parse object with tabs', () => {
+    const linter = new JSONLinter('{"a"\r\t:1\r, \r \r\t"b":2\r\r}');
+    const status = linter.validate();
+    expect(status.valid).toBe(true);
 });
