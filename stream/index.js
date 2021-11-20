@@ -28,8 +28,9 @@ JSONStream.prototype.isEOF = function () {
 
 JSONStream.prototype.currentCodeSnippet = function (snippetSize) {
     const fromIndex = Math.max(0, this.pos - snippetSize);
+    const prefix = fromIndex > 0 ? '...' : '';
 
-    return this.json.slice(fromIndex, this.pos);
+    return prefix + this.json.slice(fromIndex, this.pos);
 };
 
 module.exports = JSONStream;
