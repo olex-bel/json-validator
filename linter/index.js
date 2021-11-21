@@ -117,7 +117,7 @@ JSONLinter.prototype.parseMembers = function () {
         } else if (token.id === Token.TOKEN_COMMA) {
             token = this.readNextToken();
         } else {
-            throw new Error('JSON Syntax Error: expected "," or "}" after property value in object');
+            throw new Error(`JSON Syntax Error: expected "," or "}" after property value in object at line ${token.line} column ${token.column} of the JSON data`);
         }
     }
 };
